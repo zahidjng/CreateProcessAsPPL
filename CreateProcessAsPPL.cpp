@@ -20,6 +20,45 @@ public:
         if (m_hThread) CloseHandle(m_hThread);
     }
 
+    DWORD GetPPLProtectionLevel(DWORD processId)
+    {
+        DWORD protectionLevel = 0;
+        HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);
+
+        if (hProcess)
+        {
+            PROCESS_PROTECTION_LEVEL_INFORMATION protectionInfo;
+            DWORD returnLength = 0;
+
+            if (GetProcessInformation(hProcess, ProcessProtectionLevelInfo,
+                &protectionInfo, sizeof(protectionInfo)))
+            {
+                protectionLevel = protectionInfo.ProtectionLevel;
+            }
+
+            CloseHandle(hProcess);
+        }
+
+        return protectionLevel;
+    }
+    std::wstring GetPPLProtectionLevelName(DWORD protectionLevel)
+    {
+        switch (protectionLevel)
+        {
+        case PROTECTION_LEVEL_WINTCB_LIGHT:
+            return L"PROTECTION_LEVEL_WINTCB_LIGHT";
+        case PROTECTION_LEVEL_WINDOWS:
+            return L"PROTECTION_LEVEL_WINDOWS";
+        case PROTECTION_LEVEL_WINDOWS_LIGHT:
+            return L"PROTECTION_LEVEL_WINDOWS_LIGHT";
+        case PROTECTION_LEVEL_ANTIMALWARE_LIGHT:
+            return L"PROTECTION_LEVEL_ANTIMALWARE_LIGHT";
+        case PROTECTION_LEVEL_LSA_LIGHT:
+            return L"PROTECTION_LEVEL_LSA_LIGHT";
+        default:
+            return L"Unknown protection level";
+        }
+    }
     bool CreatePPLProcess(DWORD protectionLevel, const std::wstring& executablePath, const std::wstring& commandLine = L"")
     {
         SIZE_T size = 0;
@@ -99,6 +138,7 @@ public:
         m_hThread = pi.hThread;
 
         std::wcout << L"Successfully created PPL process with PID: " << pi.dwProcessId << std::endl;
+        std::wcerr << L"Protection level: " << GetPPLProtectionLevelName(GetPPLProtectionLevel(pi.dwProcessId)) << std::endl;
         return true;
     }
 
